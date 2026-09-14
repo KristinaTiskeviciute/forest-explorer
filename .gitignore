@@ -1,0 +1,44 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Playwright test output
+test-results
+playwright-report
+blob-report
+playwright/.cache
+
+# Real secrets (Frost client ID, etc.) — only .env.example is tracked
+.env
+
+# Personal field-trip log — real (if rounded) location data tied to the
+# author's identity, not meant for a public repo. Kept locally.
+field-observations.md
+
+# Claude Code local-only session files — not meaningful outside this machine
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# Vercel CLI project-linking metadata (local only)
+.vercel
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

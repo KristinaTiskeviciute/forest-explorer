@@ -1,0 +1,134 @@
+:root {
+  --fe-font: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --fe-bg: #ffffff;
+  --fe-panel-bg: #f7f7f6;
+  --fe-card-bg: #ffffff;
+  --fe-border: #e2e2e0;
+  --fe-border-strong: #c9c9c6;
+  --fe-text: #22262a;
+  --fe-text-muted: #5b5f63;
+  --fe-text-faint: #8a8d90;
+  --fe-accent: #3388ff;
+  --fe-accent-soft: #e8f1ff;
+  --fe-radius-sm: 6px;
+  --fe-radius-md: 10px;
+  --fe-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+body {
+  margin: 0;
+  font-family: var(--fe-font);
+  color: var(--fe-text);
+  background: var(--fe-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+kbd {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 11px;
+  background: var(--fe-panel-bg);
+  border: 1px solid var(--fe-border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.fe-select,
+.fe-input {
+  width: 100%;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--fe-border);
+  border-radius: var(--fe-radius-sm);
+  background: #fff;
+  color: var(--fe-text);
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.fe-select:hover,
+.fe-input:hover {
+  border-color: var(--fe-border-strong);
+}
+.fe-select:focus,
+.fe-input:focus {
+  outline: none;
+  border-color: var(--fe-accent);
+  box-shadow: 0 0 0 3px var(--fe-accent-soft);
+}
+
+.fe-range {
+  width: 100%;
+  accent-color: var(--fe-accent);
+}
+
+.fe-btn {
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: var(--fe-radius-sm);
+  border: 1px solid var(--fe-border);
+  background: #fff;
+  color: var(--fe-text);
+  cursor: pointer;
+  box-shadow: var(--fe-shadow-sm);
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.fe-btn:hover {
+  background: var(--fe-panel-bg);
+  border-color: var(--fe-border-strong);
+}
+.fe-btn:focus-visible {
+  outline: 2px solid var(--fe-accent);
+  outline-offset: 1px;
+}
+
+.fe-checkbox {
+  accent-color: var(--fe-accent);
+  cursor: pointer;
+}
+.fe-checkbox:disabled {
+  cursor: default;
+}
+
+.fe-layer-row:hover {
+  background: var(--fe-accent-soft);
+}
+
+.fe-skeleton {
+  border-radius: var(--fe-radius-sm);
+  background: linear-gradient(90deg, var(--fe-panel-bg) 25%, #ececea 37%, var(--fe-panel-bg) 63%);
+  background-size: 400% 100%;
+  animation: fe-shimmer 1.4s ease infinite;
+}
+
+@keyframes fe-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+/* Grid-point tooltips carry a lot of detail by design (see tooltips.ts) —
+   let them wrap at a readable width instead of Leaflet's default single
+   nowrap line, and match the app's type scale instead of the tiny default. */
+.leaflet-tooltip {
+  font-family: var(--fe-font);
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: normal;
+  /* Leaflet's tooltip pane gives this absolutely-positioned element no
+     usable containing-block width (it's sized via a transform, not
+     left/top), so plain `width: auto` shrink-to-fit collapses to the
+     width of its single longest word. `max-content` sizes it off its own
+     content instead, and `max-width` still clamps + wraps long tooltips
+     (these carry a lot of detail by design — see tooltips.ts) at a
+     readable width instead of one giant nowrap line. */
+  width: max-content;
+  max-width: 300px;
+  padding: 8px 10px;
+  border-radius: var(--fe-radius-sm);
+  border-color: var(--fe-border-strong);
+  box-shadow: var(--fe-shadow-sm);
+}
