@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { handleYrRequest } from "../server/yrProxy";
+import { handleYrRequest } from "../server/yrProxy.js";
 
 /** Yr/Locationforecast relay — see server/yrProxy.ts's handleYrRequest for
  *  the shared logic also used by the Vite dev-server proxy. Locationforecast

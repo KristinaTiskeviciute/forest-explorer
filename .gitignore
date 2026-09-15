@@ -42,3 +42,5 @@ field-observations.md
 *.njsproj
 *.sln
 *.sw?
+
+.env*

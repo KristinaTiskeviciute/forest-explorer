@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { proxyToUpstream } from "../_lib/passthroughProxy";
+import { proxyToUpstream } from "../_lib/passthroughProxy.js";
 
 /** thredds.met.no OPeNDAP relay (senorge/met_analysis NetCDF queries) — see
  *  vite.config.ts's /api/thredds dev-proxy rule for the equivalent dev-time

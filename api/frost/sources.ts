@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { handleFrostRoute } from "../../server/frostProxy";
+import { handleFrostRoute } from "../../server/frostProxy.js";
 
 /** Nearest-station lookup — see server/frostProxy.ts's handleFrostRoute for
  *  the shared logic also used by the Vite dev-server proxy. */
