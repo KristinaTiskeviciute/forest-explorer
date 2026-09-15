@@ -1,6 +1,9 @@
 import { MapContainer, TileLayer, WMSTileLayer, Marker, Popup, Circle, CircleMarker, Tooltip, useMapEvents, useMap } from "react-leaflet";
-import type { LatLngExpression } from "leaflet";
+import L, { type LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import DataSourceLayers from "./DataSourceLayers";
 import { GridPointLoader } from "./GridPointLoader";
@@ -15,6 +18,20 @@ import { compositeScore } from "../../lib/scoring/compositeScore";
 
 const center: LatLngExpression = [58.998287, 10.035595];
 const norwayBounds = getNorwayBounds();
+
+// Leaflet's default marker icon computes its image URLs relative to its own
+// module location, which a bundler's production build doesn't preserve —
+// the marker silently falls back to a broken-image icon. Re-pointing it at
+// Vite-processed (correctly hashed/served) copies of the same images fixes
+// it in both dev and prod; this only appeared once actually deployed
+// because Vite's dev server happens to serve node_modules paths that
+// production's bundled output doesn't.
+delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: markerIcon2x,
+    iconUrl: markerIcon,
+    shadowUrl: markerShadow,
+});
 
 const LOAD_STAGES: readonly LoadStage[] = ["terrain", "forest", "weather", "historical"];
 const STAGE_LABELS: Record<LoadStage, string> = {
