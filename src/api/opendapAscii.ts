@@ -24,6 +24,28 @@ export function encodeOpendapSlice(expr: string): string {
     return expr.replace(/\[/g, "%5B").replace(/\]/g, "%5D");
 }
 
+/**
+ * Builds a same-origin request to the thredds relay (server/threddsProxy.ts
+ * locally, api/thredds.ts on Vercel) from a proxy-prefixed dataset path
+ * (e.g. "/api/thredds/dodsC/senorge/seNorge_2018/Latest/seNorge2018_20260101.nc.ascii")
+ * and an OPeNDAP constraint expression. Wraps the whole constraint as the
+ * value of one well-formed query parameter (`q`) instead of appending it
+ * directly as a bare, non-standard query string — that bare format (no
+ * `=`/`&`, using `:`/`,`/`[`/`]` as its own structural syntax) doesn't
+ * survive being re-parsed/re-serialized anywhere in the request path.
+ * Confirmed live in production: an earlier relay design re-encoded the
+ * expression's raw `:`/`,` while merging in a path parameter, and
+ * thredds.met.no's OPeNDAP server doesn't decode them back before parsing
+ * the constraint syntax — the subset request silently fell back to
+ * returning the entire variable instead of a slice (a few-KB request became
+ * 233MB). Wrapping it as one normal parameter value means it only ever
+ * passes through as opaque text end to end, immune to that class of bug.
+ */
+export function buildThreddsUrl(proxiedPath: string, constraintQuery: string): string {
+    const datasetPath = proxiedPath.replace(/^\/api\/thredds\//, "");
+    return `/api/thredds?path=${encodeURIComponent(datasetPath)}&q=${encodeURIComponent(constraintQuery)}`;
+}
+
 /** A decoded 2D grid slice, indexed [row][col] matching [yi0..yi1][xi0..xi1]. */
 export type DecodedGrid = { bounds: GridIndexBounds; values: number[][] };
 

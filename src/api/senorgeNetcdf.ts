@@ -14,7 +14,7 @@
 // every multi-file fetch here stays at the low concurrency that respects that.
 
 import { mapPool } from "./concurrency";
-import { encodeOpendapSlice, findGridHeader, parseAsciiGrid, parseGridBlock, type DecodedGrid, type GridIndexBounds } from "./opendapAscii";
+import { buildThreddsUrl, encodeOpendapSlice, findGridHeader, parseAsciiGrid, parseGridBlock, type DecodedGrid, type GridIndexBounds } from "./opendapAscii";
 import { fetchWithTimeout } from "./fetchWithTimeout";
 import { threddsGate } from "./threddsGate";
 export { readGridValue, type DecodedGrid, type GridIndexBounds } from "./opendapAscii";
@@ -91,7 +91,7 @@ async function fetchDailyGrid(date: Date, bounds: GridIndexBounds): Promise<Dail
     const vars = ["rr", "tg", "tn", "tx"];
     const query = vars.map((v) => buildSliceExpr(v, 0, bounds)).join(",");
     const suffix = dateToFileSuffix(date);
-    const url = `${DAILY_BASE}/seNorge2018_${suffix}.nc.ascii?${query}`;
+    const url = buildThreddsUrl(`${DAILY_BASE}/seNorge2018_${suffix}.nc.ascii`, query);
 
     const isToday = isSameUtcDay(date, new Date());
     const cached = dailyGridCache.get(url);
@@ -161,7 +161,7 @@ export async function fetchRecentSnowDepth(bounds: GridIndexBounds, days: number
     const t1 = SNOW_TIME_LEN - 1;
     const t0 = Math.max(0, t1 - days + 1);
     const query = encodeOpendapSlice(`snow_depth[${t0}:1:${t1}][${bounds.yi0}:1:${bounds.yi1}][${bounds.xi0}:1:${bounds.xi1}]`);
-    const url = `${SNOW_URL}.ascii?${query}`;
+    const url = buildThreddsUrl(`${SNOW_URL}.ascii`, query);
 
     const cached = snowCache.get(url);
     if (cached && Date.now() - cached.fetchedAt < TODAY_CACHE_TTL_MS) {

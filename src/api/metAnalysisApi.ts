@@ -25,7 +25,7 @@
 // whole multi-day, multi-hour fetch stays at low concurrency.
 
 import { mapPool } from "./concurrency";
-import { encodeOpendapSlice, findGridHeader, parseGridBlock, readGridValue, type DecodedGrid, type GridIndexBounds } from "./opendapAscii";
+import { buildThreddsUrl, encodeOpendapSlice, findGridHeader, parseGridBlock, readGridValue, type DecodedGrid, type GridIndexBounds } from "./opendapAscii";
 import { fetchWithTimeout } from "./fetchWithTimeout";
 import { threddsGate } from "./threddsGate";
 
@@ -181,7 +181,7 @@ async function fetchHourlyPair(datasetUrl: string, indexBounds: GridIndexBounds)
     const { fetchLog } = await import("../lib/debug/fetchLog");
 
     const query = VARS.map((v) => buildVarSlice(v, indexBounds)).join(",");
-    const url = `${datasetUrl}.ascii?${query}`;
+    const url = buildThreddsUrl(`${datasetUrl}.ascii`, query);
 
     const isLatest = datasetUrl === LATEST_URL;
     const cached = hourlyPairCache.get(url);
