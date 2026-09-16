@@ -83,10 +83,19 @@ export function GridPointLoader({
         }
     }, [active, anchor, radiusKm, map, onLoaded, onLoadingChange, onPartialResult, onProgress, debugMode]);
 
+    // Read the latest `load` via a ref rather than as a dep below — `load`'s
+    // identity changes whenever radiusKm (or debugMode, etc.) changes, and a
+    // reload should only actually fire on the next click (loadVersion bump),
+    // matching the "Applies on next click" copy on the radius slider.
+    const loadRef = useRef(load);
+    useEffect(() => {
+        loadRef.current = load;
+    }, [load]);
+
     useEffect(() => {
         if (!active) return;
-        load();
-    }, [active, loadVersion, load]);
+        loadRef.current();
+    }, [active, loadVersion]);
 
     // Without this, a pending debounced reload (or the fetch it kicked off)
     // could still fire and call onLoaded/onLoadingChange after this
