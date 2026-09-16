@@ -39,7 +39,7 @@ export default function App() {
     const [location, setLocation] = useState<{ lat: number; lon: number; zoom: number } | null>(null);
     const [selectedPoint, setSelectedPoint] = useState<GridPoint | undefined>();
     const [analysisActive, setAnalysisActive] = useState(false);
-    const [radiusKm, setRadiusKm] = useState(10);
+    const [radiusKm, setRadiusKm] = useState(6);
     // Tracked independently of `location` (which stays null until the first
     // click) so the sidebar's live sub-score weights — see weightsForZoom
     // below — are meaningful even before anywhere's been analyzed. Starting
