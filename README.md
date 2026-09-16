@@ -8,7 +8,7 @@ canopy density) into a single suitability score — tunable per foraging
 target (chanterelles, ceps, blueberries, lingonberries, cloudberries, or a
 general blend).
 
-**[Live demo](#)** — _link goes here once deployed_
+**[Live demo](https://forest-explorer-nine.vercel.app)**
 
 ## What it does
 
