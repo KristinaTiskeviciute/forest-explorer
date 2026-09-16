@@ -38,17 +38,17 @@ function sourceZIndex(source: DataSourceId): number {
     const order: Record<DataSourceId, number> = {
         composite: 400,
         weather: 401,
-        rainfall: 402,
-        forest: 403,
-        terrain: 404,
-        solarRadiationAdjusted: 405,
-        vpd: 406,
-        twi: 407,
-        wind: 408,
-        humidity: 409,
-        snow: 410,
-        solarRadiation: 411,
-        cloudCover: 412,
+        temperature: 402,
+        humidity: 403,
+        rainfall: 404,
+        precipitationRecent: 405,
+        wind: 406,
+        solarRadiationAdjusted: 407,
+        vpd: 408,
+        twi: 409,
+        forest: 410,
+        terrain: 411,
+        snow: 412,
     };
     return order[source];
 }
@@ -140,6 +140,15 @@ export default function DataSourceLayers({ points, terrainDebug, active, gridSte
         const mapZoom = map.getZoom();
         const useCanvas = mapZoom >= 14;
 
+        // Each source keeps its own color gradient (score-mode vs value-mode
+        // scales aren't unified) — but stacking several fully-opaque layers
+        // on top of each other just buries everything under whichever pane
+        // sits highest (see sourceZIndex). Splitting the opacity budget across
+        // however many heatmaps are active keeps every layer's color visible
+        // through the ones above it, so multiple layers actually blend into a
+        // legible combined picture instead of one layer hiding the rest.
+        const activeHeatmapCount = DATA_SOURCES.filter((s) => dataSources[s].heatmap).length;
+
         for (const source of DATA_SOURCES) {
             if (!dataSources[source].heatmap) {
                 clearHeatmap(source);
@@ -158,6 +167,7 @@ export default function DataSourceLayers({ points, terrainDebug, active, gridSte
             }
 
             const colorFn = colorFnForSource(source);
+            const opacity = heatmapOpacityRef.current / Math.max(1, activeHeatmapCount);
             const paneName = `heatmap-${source}`;
             const pane = map.getPane(paneName) ?? map.createPane(paneName);
             pane.style.zIndex = String(sourceZIndex(source));
@@ -170,7 +180,7 @@ export default function DataSourceLayers({ points, terrainDebug, active, gridSte
                     layer.addTo(map);
                     canvasRefs.current.set(source, layer);
                 }
-                layer.setData(surface.cells, heatmapOpacityRef.current, colorFn);
+                layer.setData(surface.cells, opacity, colorFn);
             } else {
                 removeCanvasLayer(source);
                 removeGeoJsonLayer(source);
@@ -183,7 +193,7 @@ export default function DataSourceLayers({ points, terrainDebug, active, gridSte
                             const rawScore = feature?.properties?.score;
                             return {
                                 fillColor: colorFn(typeof rawScore === "number" ? rawScore : 0),
-                                fillOpacity: heatmapOpacityRef.current,
+                                fillOpacity: opacity,
                                 stroke: false,
                             };
                         },

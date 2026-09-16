@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Skeleton from "../components/ui/Skeleton";
 import MapView from "../features/map/MapView";
@@ -9,7 +9,7 @@ import { getForestClass } from "../api/nibioApi";
 import { getFrostConditions } from "../api/frostApi";
 import { getSenorgeConditions } from "../api/senorgeApi";
 import { getMetAnalysisLatestAtPoint } from "../api/metAnalysisApi";
-import { compositeScore } from "../lib/scoring/compositeScore";
+import { compositeScore, weightsForZoom } from "../lib/scoring/compositeScore";
 import { mergeHistoricalConditions } from "../lib/scoring/historicalConditions";
 import { getTerrainAtPoint } from "../lib/terrain/slopeApi";
 import { MIN_MAPBOX_ZOOM, gridStepForZoom } from "../lib/terrain/types";
@@ -32,6 +32,11 @@ export default function App() {
     const [selectedPoint, setSelectedPoint] = useState<GridPoint | undefined>();
     const [analysisActive, setAnalysisActive] = useState(false);
     const [radiusKm, setRadiusKm] = useState(10);
+    // Tracked independently of `location` (which stays null until the first
+    // click) so the sidebar's live sub-score weights — see weightsForZoom
+    // below — are meaningful even before anywhere's been analyzed. Starting
+    // value matches MapView's own initial MapContainer zoom.
+    const [zoom, setZoom] = useState(13);
     const { foragingTarget } = useLayers();
 
     // Memoized so its identity stays stable across App re-renders — MapView
@@ -41,13 +46,16 @@ export default function App() {
     // already-current zoom) on every single App render, not just real zoom
     // changes. setLocation itself is the stable setter from useState, so
     // this callback never needs to change.
-    const onLiveZoomChange = useCallback((zoom: number) => {
+    const onLiveZoomChange = useCallback((z: number) => {
+        setZoom(z);
         // Bail out on an unchanged value — otherwise this always returns a
         // new object, which never lets React's setState bail out either,
         // and the callback identity change cascades into MapContents'
         // zoom-sync effect re-firing every render (infinite loop).
-        setLocation((prev) => (prev && prev.zoom !== zoom ? { ...prev, zoom } : prev));
+        setLocation((prev) => (prev && prev.zoom !== z ? { ...prev, zoom: z } : prev));
     }, []);
+
+    const weights = useMemo(() => weightsForZoom(zoom), [zoom]);
 
     const detailQuery = useQuery({
         queryKey: [
@@ -283,7 +291,12 @@ export default function App() {
                     </div>
                 )}
 
-                <LayerControls analysisActive={analysisActive} radiusKm={radiusKm} onRadiusKmChange={setRadiusKm} />
+                <LayerControls
+                    analysisActive={analysisActive}
+                    radiusKm={radiusKm}
+                    onRadiusKmChange={setRadiusKm}
+                    weights={weights}
+                />
 
                 <p style={{ marginTop: 20, fontSize: 12, color: "var(--fe-text-faint)" }}>
                     Press <kbd>D</kbd> for debug panel (tile budget, API log)

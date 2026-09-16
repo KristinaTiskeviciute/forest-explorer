@@ -21,14 +21,21 @@ function magnitudeToColor(t: number): string {
 /** Expected real-world range per value layer — tunable defaults, same
  *  honesty as every other scoring threshold in this codebase. */
 export const VALUE_DOMAINS: Partial<Record<DataSourceId, { min: number; max: number }>> = {
+    // °C — spans a typical Norwegian foraging-season range (frosty mornings
+    // through a warm summer day), wider than any single target's ideal band
+    // in weatherProfiles.ts (12-16°C ±10-14) since this is the raw reading,
+    // not the score.
+    temperature: { min: -5, max: 25 },
     wind: { min: 0, max: 15 },
     humidity: { min: 30, max: 100 },
     snow: { min: 0, max: 50 },
     // 0 (night hours, or the trend's fixed sample hour landing after dark)
     // through ~800 (bright clear midday at Norway's latitude in summer).
-    solarRadiation: { min: 0, max: 800 },
     solarRadiationAdjusted: { min: 0, max: 800 },
-    cloudCover: { min: 0, max: 100 },
+    // mm — mirrors rainfallScore.ts's own RAINFALL_CURVE range (0-120mm,
+    // where suitability already tails off well before the top), so the
+    // color ramp saturates around the same point the score does.
+    precipitationRecent: { min: 0, max: 120 },
     // kPa — observed range this session was ~0.4-0.95; a wider ceiling
     // leaves room for genuinely dry/warm conditions without saturating.
     vpd: { min: 0, max: 2 },

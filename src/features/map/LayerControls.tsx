@@ -1,4 +1,4 @@
-import { DATA_SOURCES, LAYER_GROUP, SOURCE_COLORS, SOURCE_LABELS, type DataSourceId } from "../../lib/layers/types";
+import { DATA_SOURCES, LAYER_GROUP, LAYER_PARENT, SOURCE_COLORS, SOURCE_LABELS, type DataSourceId } from "../../lib/layers/types";
 import { FORAGING_TARGETS, FORAGING_TARGET_LABELS, type ForagingTarget } from "../../lib/scoring/foragingTargets";
 import { useLayers } from "../../lib/layers/layerStore";
 
@@ -9,9 +9,14 @@ type Props = {
     analysisActive: boolean;
     radiusKm: number;
     onRadiusKmChange: (radiusKm: number) => void;
+    /** Live weather/rainfall/forest/terrain weights for the current zoom
+     *  (see weightsForZoom in compositeScore.ts) — shown next to each
+     *  sub-score's label so the table reflects how much each one actually
+     *  counts right now, not just that it's one of four inputs. */
+    weights: { weather: number; rainfall: number; forest: number; terrain: number };
 };
 
-export function LayerControls({ analysisActive, radiusKm, onRadiusKmChange }: Props) {
+export function LayerControls({ analysisActive, radiusKm, onRadiusKmChange, weights }: Props) {
     const {
         dataSources,
         setSourceLayer,
@@ -117,21 +122,23 @@ export function LayerControls({ analysisActive, radiusKm, onRadiusKmChange }: Pr
 
             <p style={{ fontSize: 12, color: "var(--fe-text-faint)", margin: "0 0 10px", lineHeight: 1.5 }}>
                 <strong>Heatmap</strong> colors the whole analyzed area; <strong>grid</strong> shows individual
-                sample points you can hover for details.
+                sample points you can hover for details. Enable more than one heatmap at once to compare them —
+                each one's opacity thins out automatically so they stay legible stacked together.
             </p>
 
             <LayerTable
                 heading="Composite score components"
-                description="Feed directly into the composite suitability score."
+                description="Weather/rainfall/forest/terrain feed the composite score directly, at the % weight shown — terrain's share grows with zoom, taken proportionally from the other three. Everything nested under one of them feeds that sub-score instead."
                 sources={COMPOSITE_SOURCES}
                 dataSources={dataSources}
                 analysisActive={analysisActive}
                 setSourceLayer={setSourceLayer}
+                weights={weights}
             />
             <div style={{ marginTop: 16 }}>
                 <LayerTable
-                    heading="Raw values"
-                    description="Reference readings shown for context — not used in scoring."
+                    heading="Also worth checking"
+                    description="Not used in scoring, but relevant on the ground regardless."
                     sources={RAW_SOURCES}
                     dataSources={dataSources}
                     analysisActive={analysisActive}
@@ -207,9 +214,13 @@ type LayerTableProps = {
     dataSources: ReturnType<typeof useLayers>["dataSources"];
     analysisActive: boolean;
     setSourceLayer: ReturnType<typeof useLayers>["setSourceLayer"];
+    /** Weight (0-1) for whichever of these sources it has a live weight for
+     *  (weather/rainfall/forest/terrain) — everything else is just omitted
+     *  from this map, so the row renders without a percentage. */
+    weights?: Partial<Record<DataSourceId, number>>;
 };
 
-function LayerTable({ heading, description, sources, dataSources, analysisActive, setSourceLayer }: LayerTableProps) {
+function LayerTable({ heading, description, sources, dataSources, analysisActive, setSourceLayer, weights }: LayerTableProps) {
     return (
         <div>
             <h5
@@ -246,44 +257,72 @@ function LayerTable({ heading, description, sources, dataSources, analysisActive
                     </tr>
                 </thead>
                 <tbody>
-                    {sources.map((source) => (
-                        <tr className="fe-layer-row" key={source}>
-                            <td style={{ padding: "6px 4px 6px 0" }}>
-                                <span
-                                    style={{
-                                        display: "inline-block",
-                                        width: 10,
-                                        height: 10,
-                                        borderRadius: "50%",
-                                        background: SOURCE_COLORS[source],
-                                        marginRight: 6,
-                                        verticalAlign: "middle",
-                                    }}
-                                />
-                                {SOURCE_LABELS[source]}
-                            </td>
-                            <td style={{ padding: "6px 4px", textAlign: "center" }}>
-                                <input
-                                    className="fe-checkbox"
-                                    type="checkbox"
-                                    aria-label={`${SOURCE_LABELS[source]} heatmap`}
-                                    checked={dataSources[source].heatmap}
-                                    disabled={!analysisActive}
-                                    onChange={(e) => setSourceLayer(source, "heatmap", e.target.checked)}
-                                />
-                            </td>
-                            <td style={{ padding: "6px 4px", textAlign: "center" }}>
-                                <input
-                                    className="fe-checkbox"
-                                    type="checkbox"
-                                    aria-label={`${SOURCE_LABELS[source]} grid`}
-                                    checked={dataSources[source].grid}
-                                    disabled={!analysisActive}
-                                    onChange={(e) => setSourceLayer(source, "grid", e.target.checked)}
-                                />
-                            </td>
-                        </tr>
-                    ))}
+                    {sources.map((source) => {
+                        // Only treat it as nested when its parent is also in
+                        // this same table — LAYER_PARENT is a global mapping,
+                        // but a table showing just one section shouldn't
+                        // indent a row whose "parent" isn't even listed here.
+                        const isNested = LAYER_PARENT[source] !== undefined && sources.includes(LAYER_PARENT[source]!);
+                        return (
+                            <tr className="fe-layer-row" key={source}>
+                                <td style={{ padding: "6px 4px 6px 0", paddingLeft: isNested ? 20 : 0 }}>
+                                    {isNested ? (
+                                        <span
+                                            style={{
+                                                display: "inline-block",
+                                                marginRight: 6,
+                                                color: "var(--fe-text-faint)",
+                                                fontSize: 11,
+                                            }}
+                                        >
+                                            ↳
+                                        </span>
+                                    ) : (
+                                        <span
+                                            style={{
+                                                display: "inline-block",
+                                                width: 10,
+                                                height: 10,
+                                                borderRadius: "50%",
+                                                background: SOURCE_COLORS[source],
+                                                marginRight: 6,
+                                                verticalAlign: "middle",
+                                            }}
+                                        />
+                                    )}
+                                    <span style={isNested ? { color: "var(--fe-text-muted)", fontSize: 11 } : undefined}>
+                                        {SOURCE_LABELS[source]}
+                                    </span>
+                                    {weights?.[source] !== undefined && (
+                                        <span style={{ color: "var(--fe-text-faint)", fontSize: 11 }}>
+                                            {" "}
+                                            ({Math.round(weights[source]! * 100)}%)
+                                        </span>
+                                    )}
+                                </td>
+                                <td style={{ padding: "6px 4px", textAlign: "center" }}>
+                                    <input
+                                        className="fe-checkbox"
+                                        type="checkbox"
+                                        aria-label={`${SOURCE_LABELS[source]} heatmap`}
+                                        checked={dataSources[source].heatmap}
+                                        disabled={!analysisActive}
+                                        onChange={(e) => setSourceLayer(source, "heatmap", e.target.checked)}
+                                    />
+                                </td>
+                                <td style={{ padding: "6px 4px", textAlign: "center" }}>
+                                    <input
+                                        className="fe-checkbox"
+                                        type="checkbox"
+                                        aria-label={`${SOURCE_LABELS[source]} grid`}
+                                        checked={dataSources[source].grid}
+                                        disabled={!analysisActive}
+                                        onChange={(e) => setSourceLayer(source, "grid", e.target.checked)}
+                                    />
+                                </td>
+                            </tr>
+                        );
+                    })}
                 </tbody>
             </table>
         </div>

@@ -24,16 +24,16 @@ export function valueForSource(point: GridPoint, source: DataSourceId): number |
     const conditions = point.debug?.inputs.conditions;
     if (!conditions) return null;
     switch (source) {
+        case "temperature":
+            return conditions.tempMeanRecentC ?? null;
         case "wind":
             return conditions.windMeanMs ?? null;
         case "humidity":
             return conditions.humidityMeanPct ?? null;
         case "snow":
             return conditions.snowDepthCm ?? null;
-        case "solarRadiation":
-            return conditions.solarRadiationWm2 ?? null;
-        case "cloudCover":
-            return conditions.cloudCoverPct ?? null;
+        case "precipitationRecent":
+            return conditions.precipitationRecentMm ?? null;
         case "vpd":
             return conditions.vpdKpa ?? null;
         case "solarRadiationAdjusted": {

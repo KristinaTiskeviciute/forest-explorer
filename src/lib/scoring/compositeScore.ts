@@ -34,6 +34,10 @@ export type ScoreBreakdown = {
     };
 };
 
+const BASE_WEATHER = 0.35;
+const BASE_RAIN = 0.35;
+const BASE_FOREST = 0.3;
+
 function terrainWeight(zoom: number): number {
     // Terrain data isn't fetched below MIN_TERRAIN_GRID_ZOOM, so the ramp
     // must not start until then or this weight gets silently discarded.
@@ -43,6 +47,30 @@ function terrainWeight(zoom: number): number {
     if (zoom >= 15) return 0.25;
     if (zoom >= 13) return 0.2;
     return 0.15; // zoom 11-12
+}
+
+/**
+ * The actual weight each sub-score carries at a given zoom, independent of
+ * any specific point — terrain's weight ramps from 0 (below
+ * MIN_TERRAIN_GRID_ZOOM) up to 0.35 as zoom increases (see terrainWeight
+ * above), proportionally shrinking the other three rather than being added
+ * on top. Exported so the sidebar can show these live percentages instead of
+ * listing weather/rainfall/forest/terrain as if they always counted equally
+ * (they don't, and terrain sometimes counts for nothing at all). Assumes
+ * terrain data is actually available at this zoom — a specific point whose
+ * terrain fetch failed still falls back to the tw===0 weighting inside
+ * compositeScore below, which this can't know about without a real point.
+ */
+export function weightsForZoom(zoom: number): { weather: number; rainfall: number; forest: number; terrain: number } {
+    const tw = terrainWeight(zoom);
+    if (tw === 0) return { weather: BASE_WEATHER, rainfall: BASE_RAIN, forest: BASE_FOREST, terrain: 0 };
+    const remaining = 1 - tw;
+    return {
+        weather: BASE_WEATHER * remaining,
+        rainfall: BASE_RAIN * remaining,
+        forest: BASE_FOREST * remaining,
+        terrain: tw,
+    };
 }
 
 export function compositeScore(params: {
@@ -66,23 +94,18 @@ export function compositeScore(params: {
             ? terrainScore(slope, aspect)
             : null;
 
-    const baseWeather = 0.35;
-    const baseRain = 0.35;
-    const baseForest = 0.3;
-
     let composite: number;
-    let weights = { weather: baseWeather, rainfall: baseRain, forest: baseForest, terrain: 0 };
+    // A specific point's terrain fetch can fail even when this zoom
+    // otherwise supports it (t === null) — falls back to the flat
+    // zoom-only weighting in that case too, same as weightsForZoom(zoom)
+    // would give for a zoom below MIN_TERRAIN_GRID_ZOOM.
+    const weights = tw === 0 || t === null
+        ? { weather: BASE_WEATHER, rainfall: BASE_RAIN, forest: BASE_FOREST, terrain: 0 }
+        : weightsForZoom(zoom);
 
     if (tw === 0 || t === null) {
-        composite = w * baseWeather + r * baseRain + f * baseForest;
+        composite = w * weights.weather + r * weights.rainfall + f * weights.forest;
     } else {
-        const remaining = 1 - tw;
-        weights = {
-            weather: baseWeather * remaining,
-            rainfall: baseRain * remaining,
-            forest: baseForest * remaining,
-            terrain: tw,
-        };
         composite =
             w * weights.weather +
             r * weights.rainfall +

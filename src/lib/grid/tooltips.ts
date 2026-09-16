@@ -77,17 +77,21 @@ export function gridTooltip(point: GridPoint, source: DataSourceId): string {
     // aren't part of SourceScores at all — handle them before the
     // score-mode lookup below.
     if (
+        source === "temperature" ||
         source === "wind" ||
         source === "humidity" ||
         source === "snow" ||
-        source === "solarRadiation" ||
-        source === "cloudCover" ||
         source === "vpd" ||
-        source === "solarRadiationAdjusted"
+        source === "solarRadiationAdjusted" ||
+        source === "precipitationRecent"
     ) {
         const conditions = point.debug?.inputs.conditions;
         if (!conditions) return `${SOURCE_LABELS[source]}: no data`;
         switch (source) {
+            case "temperature":
+                return conditions.tempMeanRecentC !== undefined
+                    ? `<strong>Temperature:</strong> ${conditions.tempMeanRecentC.toFixed(1)}°C 7-day mean<br>Source: ${styleProvenance(conditions.tempProvenance)}`
+                    : `${SOURCE_LABELS.temperature}: no data`;
             case "wind":
                 // windProvenance is always set alongside windMeanMs (see
                 // mergeHistoricalConditions) — it's only optional in the type
@@ -103,14 +107,6 @@ export function gridTooltip(point: GridPoint, source: DataSourceId): string {
                 return conditions.snowDepthCm !== undefined
                     ? `<strong>Snow depth:</strong> ${conditions.snowDepthCm.toFixed(0)} cm`
                     : `${SOURCE_LABELS.snow}: no data`;
-            case "solarRadiation":
-                return conditions.solarRadiationWm2 !== undefined
-                    ? `<strong>Solar radiation:</strong> ${conditions.solarRadiationWm2.toFixed(0)} W/m²`
-                    : `${SOURCE_LABELS.solarRadiation}: no data`;
-            case "cloudCover":
-                return conditions.cloudCoverPct !== undefined
-                    ? `<strong>Cloud cover:</strong> ${conditions.cloudCoverPct.toFixed(0)}%`
-                    : `${SOURCE_LABELS.cloudCover}: no data`;
             case "vpd":
                 return conditions.vpdKpa !== undefined
                     ? `<strong>Vapor pressure deficit:</strong> ${conditions.vpdKpa.toFixed(2)} kPa<br>Lower = more humid air, generally better for fungal growth`
@@ -120,6 +116,13 @@ export function gridTooltip(point: GridPoint, source: DataSourceId): string {
                 const { slope, aspect } = point.debug?.inputs ?? {};
                 const adjusted = effectiveSolarRadiation(conditions.solarRadiationWm2, slope, aspect);
                 return `<strong>Solar radiation, adjusted for slope/aspect:</strong> ${adjusted.toFixed(0)} W/m²<br>Raw (flat-ground) reading: ${conditions.solarRadiationWm2.toFixed(0)} W/m²`;
+            }
+            case "precipitationRecent": {
+                if (conditions.precipitationRecentMm === undefined) return `${SOURCE_LABELS.precipitationRecent}: no data`;
+                const target = point.debug?.inputs.foragingTarget ?? "general";
+                const recencyLabel = rainRecencyLabel(conditions, target);
+                const recency = recencyLabel ? `<br>${recencyLabel}` : "";
+                return `<strong>Rainfall amount:</strong> ${conditions.precipitationRecentMm.toFixed(1)} mm recent<br>Source: ${styleProvenance(conditions.precipitationProvenance)}${recency}`;
             }
         }
     }
