@@ -1,6 +1,7 @@
 import { DATA_SOURCES, LAYER_GROUP, LAYER_PARENT, SOURCE_COLORS, SOURCE_LABELS, type DataSourceId } from "../../lib/layers/types";
 import { FORAGING_TARGETS, FORAGING_TARGET_LABELS, type ForagingTarget } from "../../lib/scoring/foragingTargets";
 import { useLayers } from "../../lib/layers/layerStore";
+import { PANEL_CARD_STYLE, PANEL_CARD_TITLE_STYLE } from "../../components/ui/panelStyles";
 
 const COMPOSITE_SOURCES = DATA_SOURCES.filter((s) => LAYER_GROUP[s] === "composite");
 const RAW_SOURCES = DATA_SOURCES.filter((s) => LAYER_GROUP[s] === "raw");
@@ -29,17 +30,8 @@ export function LayerControls({ analysisActive, radiusKm, onRadiusKmChange, weig
     } = useLayers();
 
     return (
-        <div
-            style={{
-                marginTop: 14,
-                background: "var(--fe-card-bg)",
-                border: "1px solid var(--fe-border)",
-                borderRadius: 10,
-                padding: "12px 14px",
-                boxShadow: "var(--fe-shadow-sm)",
-            }}
-        >
-            <h4 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 600 }}>Data layers</h4>
+        <div style={PANEL_CARD_STYLE}>
+            <h4 style={PANEL_CARD_TITLE_STYLE}>Data layers</h4>
 
             <div style={{ marginBottom: 12 }}>
                 <label
@@ -135,81 +127,78 @@ export function LayerControls({ analysisActive, radiusKm, onRadiusKmChange, weig
                 setSourceLayer={setSourceLayer}
                 weights={weights}
             />
-            <div style={{ marginTop: 16 }}>
-                <LayerTable
-                    heading="Also worth checking"
-                    description="Not used in scoring, but relevant on the ground regardless."
-                    sources={RAW_SOURCES}
-                    dataSources={dataSources}
-                    analysisActive={analysisActive}
-                    setSourceLayer={setSourceLayer}
-                />
-            </div>
+            <details className="fe-collapsible" style={{ marginTop: 16 }}>
+                <summary>Also worth checking</summary>
+                <div style={{ marginTop: 8 }}>
+                    <p style={{ margin: "0 0 6px", fontSize: 11, color: "var(--fe-text-faint)" }}>
+                        Not used in scoring, but relevant on the ground regardless.
+                    </p>
+                    <LayerTable
+                        sources={RAW_SOURCES}
+                        dataSources={dataSources}
+                        analysisActive={analysisActive}
+                        setSourceLayer={setSourceLayer}
+                    />
+                </div>
+            </details>
 
-            <div style={{ marginTop: 16 }}>
-                <h5
-                    style={{
-                        margin: "0 0 2px",
-                        fontSize: 11,
-                        fontWeight: 600,
-                        color: "var(--fe-text-muted)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.03em",
-                    }}
-                >
-                    Reference overlays
-                </h5>
-                <p style={{ margin: "0 0 6px", fontSize: 11, color: "var(--fe-text-faint)" }}>
-                    Raw NIBIO map layers, shown as-is — not used in scoring. Visible immediately, no click needed.
-                </p>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", fontSize: 12, cursor: "pointer" }}>
-                    <input
-                        className="fe-checkbox"
-                        type="radio"
-                        name="fe-reference-overlay"
-                        checked={referenceOverlays.hogstklasser}
-                        onChange={() => setReferenceOverlay("hogstklasser", true)}
-                    />
-                    Hogstklasse (stand age)
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", fontSize: 12, cursor: "pointer" }}>
-                    <input
-                        className="fe-checkbox"
-                        type="radio"
-                        name="fe-reference-overlay"
-                        checked={referenceOverlays.crownCover}
-                        onChange={() => setReferenceOverlay("crownCover", true)}
-                    />
-                    Crown cover (canopy density)
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", fontSize: 12, cursor: "pointer" }}>
-                    <input
-                        className="fe-checkbox"
-                        type="radio"
-                        name="fe-reference-overlay"
-                        checked={referenceOverlays.recentCutSatellite}
-                        onChange={() => setReferenceOverlay("recentCutSatellite", true)}
-                    />
-                    Recent clear-cuts by year (Miljødirektoratet, satellite, darker = more recent, 1985–2024)
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", fontSize: 12, cursor: "pointer" }}>
-                    <input
-                        className="fe-checkbox"
-                        type="radio"
-                        name="fe-reference-overlay"
-                        checked={!referenceOverlays.hogstklasser && !referenceOverlays.crownCover && !referenceOverlays.recentCutSatellite}
-                        onChange={() => setReferenceOverlay("hogstklasser", false)}
-                    />
-                    None
-                </label>
-            </div>
+            <details className="fe-collapsible" style={{ marginTop: 16 }}>
+                <summary>Reference overlays</summary>
+                <div style={{ marginTop: 8 }}>
+                    <p style={{ margin: "0 0 6px", fontSize: 11, color: "var(--fe-text-faint)" }}>
+                        Raw NIBIO map layers, shown as-is — not used in scoring. Visible immediately, no click needed.
+                    </p>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", fontSize: 12, cursor: "pointer" }}>
+                        <input
+                            className="fe-checkbox"
+                            type="radio"
+                            name="fe-reference-overlay"
+                            checked={referenceOverlays.hogstklasser}
+                            onChange={() => setReferenceOverlay("hogstklasser", true)}
+                        />
+                        Hogstklasse (stand age)
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", fontSize: 12, cursor: "pointer" }}>
+                        <input
+                            className="fe-checkbox"
+                            type="radio"
+                            name="fe-reference-overlay"
+                            checked={referenceOverlays.crownCover}
+                            onChange={() => setReferenceOverlay("crownCover", true)}
+                        />
+                        Crown cover (canopy density)
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", fontSize: 12, cursor: "pointer" }}>
+                        <input
+                            className="fe-checkbox"
+                            type="radio"
+                            name="fe-reference-overlay"
+                            checked={referenceOverlays.recentCutSatellite}
+                            onChange={() => setReferenceOverlay("recentCutSatellite", true)}
+                        />
+                        Recent clear-cuts by year (Miljødirektoratet, satellite, darker = more recent, 1985–2024)
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", fontSize: 12, cursor: "pointer" }}>
+                        <input
+                            className="fe-checkbox"
+                            type="radio"
+                            name="fe-reference-overlay"
+                            checked={!referenceOverlays.hogstklasser && !referenceOverlays.crownCover && !referenceOverlays.recentCutSatellite}
+                            onChange={() => setReferenceOverlay("hogstklasser", false)}
+                        />
+                        None
+                    </label>
+                </div>
+            </details>
         </div>
     );
 }
 
 type LayerTableProps = {
-    heading: string;
-    description: string;
+    /** Omit when the caller already provides its own heading/description
+     *  (e.g. a <details><summary> wrapper) — see the "Also worth checking" usage. */
+    heading?: string;
+    description?: string;
     sources: readonly DataSourceId[];
     dataSources: ReturnType<typeof useLayers>["dataSources"];
     analysisActive: boolean;
@@ -223,19 +212,21 @@ type LayerTableProps = {
 function LayerTable({ heading, description, sources, dataSources, analysisActive, setSourceLayer, weights }: LayerTableProps) {
     return (
         <div>
-            <h5
-                style={{
-                    margin: "0 0 2px",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: "var(--fe-text-muted)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.03em",
-                }}
-            >
-                {heading}
-            </h5>
-            <p style={{ margin: "0 0 6px", fontSize: 11, color: "var(--fe-text-faint)" }}>{description}</p>
+            {heading && (
+                <h5
+                    style={{
+                        margin: "0 0 2px",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: "var(--fe-text-muted)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.03em",
+                    }}
+                >
+                    {heading}
+                </h5>
+            )}
+            {description && <p style={{ margin: "0 0 6px", fontSize: 11, color: "var(--fe-text-faint)" }}>{description}</p>}
             <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
                 <thead>
                     <tr style={{ textAlign: "left", color: "var(--fe-text-faint)" }}>
