@@ -1,6 +1,7 @@
 import { DATA_SOURCES, LAYER_GROUP, SOURCE_COLORS, SOURCE_LABELS, type DataSourceId } from "../../lib/layers/types";
 import { FORAGING_TARGETS, FORAGING_TARGET_LABELS, type ForagingTarget } from "../../lib/scoring/foragingTargets";
 import { useLayers } from "../../lib/layers/layerStore";
+import { PANEL_CARD_STYLE, PANEL_CARD_TITLE_STYLE } from "../../components/ui/panelStyles";
 
 const COMPOSITE_SOURCES = DATA_SOURCES.filter((s) => LAYER_GROUP[s] === "composite");
 const RAW_SOURCES = DATA_SOURCES.filter((s) => LAYER_GROUP[s] === "raw");
@@ -24,23 +25,8 @@ export function LayerControls({ analysisActive, radiusKm, onRadiusKmChange }: Pr
     } = useLayers();
 
     return (
-        <div
-            style={{
-                marginTop: 14,
-                background: "var(--fe-card-bg)",
-                border: "1px solid var(--fe-border)",
-                borderRadius: 10,
-                padding: "12px 14px",
-                boxShadow: "var(--fe-shadow-sm)",
-            }}
-        >
-            <p style={{ fontSize: 12, color: "var(--fe-text-muted)", lineHeight: 1.5, margin: "0 0 14px" }}>
-                <strong style={{ color: "var(--fe-text)" }}>Forest Explorer</strong> scores foraging spots in Norway
-                using live terrain, weather, and forest-cover data. Click anywhere on the map to analyze the area
-                around that point.
-            </p>
-
-            <h4 style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 600 }}>Data layers</h4>
+        <div style={PANEL_CARD_STYLE}>
+            <h4 style={PANEL_CARD_TITLE_STYLE}>Data layers</h4>
 
             <div style={{ marginBottom: 12 }}>
                 <label

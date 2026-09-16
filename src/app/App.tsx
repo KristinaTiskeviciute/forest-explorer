@@ -1,6 +1,8 @@
 import { useCallback, useState } from "react";
+import { supportsEmojiSequence } from "../lib/emojiSupport";
 import { useQuery } from "@tanstack/react-query";
 import Skeleton from "../components/ui/Skeleton";
+import { PANEL_CARD_STYLE, PANEL_CARD_TITLE_STYLE } from "../components/ui/panelStyles";
 import MapView from "../features/map/MapView";
 import { LayerControls } from "../features/map/LayerControls";
 import type { GridPoint } from "../lib/grid/types";
@@ -27,12 +29,20 @@ const SCORE_GUIDE: Array<{ range: string; label: string; sample: number }> = [
     { range: "< 0.45", label: "Not worth it", sample: 0.25 },
 ];
 
+// A recently-added ZWJ sequence (Unicode 15.1) — not every browser's emoji
+// font can render it as one merged glyph yet, so it's only shown once
+// supportsEmojiSequence confirms this browser can (see emojiSupport.ts);
+// otherwise it's omitted entirely rather than showing a broken fallback.
+const BROWN_MUSHROOM = "\u{1F344}‍\u{1F7EB}";
+
 export default function App() {
     const [location, setLocation] = useState<{ lat: number; lon: number; zoom: number } | null>(null);
     const [selectedPoint, setSelectedPoint] = useState<GridPoint | undefined>();
     const [analysisActive, setAnalysisActive] = useState(false);
     const [radiusKm, setRadiusKm] = useState(10);
     const { foragingTarget } = useLayers();
+    // Lazy initializer runs the canvas check once on first render, client-side only.
+    const [supportsMushroomEmoji] = useState(() => supportsEmojiSequence(BROWN_MUSHROOM));
 
     // Memoized so its identity stays stable across App re-renders — MapView
     // wires this into a useCallback (handleZoomChange) that feeds an effect
@@ -151,154 +161,132 @@ export default function App() {
                     borderLeft: "1px solid var(--fe-border)",
                 }}
             >
-                <h3
-                    style={{
-                        margin: "0 0 12px",
-                        fontSize: 15,
-                        fontWeight: 600,
-                        paddingBottom: 8,
-                        borderBottom: "1px solid var(--fe-border)",
-                    }}
-                >
-                    Selected location
-                </h3>
+                <div style={PANEL_CARD_STYLE}>
+                    <h2 style={PANEL_CARD_TITLE_STYLE}>
+                        Forest Explorer{supportsMushroomEmoji && ` ${BROWN_MUSHROOM}`}
+                    </h2>
+                    <p style={{ fontSize: 12, color: "var(--fe-text-muted)", lineHeight: 1.5, margin: 0 }}>
+                        Scores foraging spots in Norway using live terrain, weather, and forest-cover data. Click
+                        anywhere on the map to analyze the area around that point.
+                    </p>
+                </div>
 
-                {!location && (
-                    <p style={{ fontSize: 13, color: "var(--fe-text-muted)" }}>Click on the map to analyze an area.</p>
-                )}
+                <div style={PANEL_CARD_STYLE}>
+                    <h3 style={PANEL_CARD_TITLE_STYLE}>Selected location</h3>
 
-                {location && (
-                    <div
-                        style={{
-                            background: "var(--fe-card-bg)",
-                            border: "1px solid var(--fe-border)",
-                            borderRadius: 10,
-                            padding: "12px 14px",
-                            marginBottom: 14,
-                            boxShadow: "var(--fe-shadow-sm)",
-                        }}
-                    >
-                        <p style={{ margin: "0 0 4px", fontSize: 13 }}>Lat: {location.lat.toFixed(4)}</p>
-                        <p style={{ margin: "0 0 4px", fontSize: 13 }}>Lon: {location.lon.toFixed(4)}</p>
-                        <p style={{ margin: 0, fontSize: 13 }}>Zoom: {location.zoom.toFixed(1)}</p>
+                    {!location && (
+                        <p style={{ fontSize: 13, color: "var(--fe-text-muted)" }}>Click on the map to analyze an area.</p>
+                    )}
 
-                        {detailQuery.isLoading && (
-                            <div style={{ marginTop: 10 }}>
-                                <Skeleton height={20} />
-                                <Skeleton height={20} />
-                            </div>
-                        )}
+                    {location && (
+                        <div>
+                            <p style={{ margin: "0 0 4px", fontSize: 13 }}>Lat: {location.lat.toFixed(4)}</p>
+                            <p style={{ margin: "0 0 4px", fontSize: 13 }}>Lon: {location.lon.toFixed(4)}</p>
+                            <p style={{ margin: 0, fontSize: 13 }}>Zoom: {location.zoom.toFixed(1)}</p>
 
-                        {detailQuery.error && (
-                            <p style={{ marginTop: 10, fontSize: 13, color: "#c0392b" }}>Error loading data</p>
-                        )}
+                            {detailQuery.isLoading && (
+                                <div style={{ marginTop: 10 }}>
+                                    <Skeleton height={20} />
+                                    <Skeleton height={20} />
+                                </div>
+                            )}
 
-                        {detailQuery.data && (
-                            <div
-                                style={{
-                                    fontSize: 13,
-                                    marginTop: 10,
-                                    paddingTop: 10,
-                                    borderTop: "1px solid var(--fe-border)",
-                                }}
-                            >
-                                <p style={{ margin: "0 0 4px" }}>
-                                    <strong>Composite:</strong> {detailQuery.data.breakdown.composite.toFixed(2)}
-                                </p>
-                                <p style={{ margin: "0 0 4px" }}>
-                                    Weather: {detailQuery.data.breakdown.weather.toFixed(2)}
-                                </p>
-                                <p style={{ margin: "0 0 4px" }}>
-                                    Rainfall: {detailQuery.data.breakdown.rainfall.toFixed(2)}
-                                </p>
-                                <p style={{ margin: "0 0 4px" }}>
-                                    Forest ({detailQuery.data.breakdown.inputs.forestClass}):{" "}
-                                    {detailQuery.data.breakdown.forest.toFixed(2)}
-                                </p>
-                                <p style={{ margin: "0 0 4px" }}>
-                                    Terrain:{" "}
-                                    {detailQuery.data.breakdown.terrain?.toFixed(2) ??
-                                        `n/a (zoom in to z${MIN_MAPBOX_ZOOM}+)`}
-                                </p>
-                                {detailQuery.data.elevation !== undefined && (
-                                    <p style={{ margin: 0 }}>
-                                        Elevation: {detailQuery.data.elevation.toFixed(0)} m
-                                        {detailQuery.data.slope !== undefined && (
-                                            <>
-                                                {" "}
-                                                · Slope: {detailQuery.data.slope.toFixed(3)} · Aspect:{" "}
-                                                {detailQuery.data.aspect?.toFixed(0)}°
-                                            </>
-                                        )}
-                                        {detailQuery.data.twi !== undefined && (
-                                            <> · TWI: {detailQuery.data.twi.toFixed(1)}</>
-                                        )}
-                                    </p>
-                                )}
+                            {detailQuery.error && (
+                                <p style={{ marginTop: 10, fontSize: 13, color: "#c0392b" }}>Error loading data</p>
+                            )}
 
-                                <p
+                            {detailQuery.data && (
+                                <div
                                     style={{
+                                        fontSize: 13,
                                         marginTop: 10,
                                         paddingTop: 10,
                                         borderTop: "1px solid var(--fe-border)",
-                                        color: "var(--fe-text-muted)",
-                                        fontSize: 12,
-                                        lineHeight: 1.6,
                                     }}
                                 >
-                                    {detailQuery.data.breakdown.inputs.forecast.temperature.toFixed(1)}°C now
-                                    {detailQuery.data.conditions.tempMeanRecentC !== undefined && (
-                                        <> · {detailQuery.data.conditions.tempMeanRecentC.toFixed(1)}°C 7d-mean ({detailQuery.data.conditions.tempProvenance})</>
+                                    <p style={{ margin: "0 0 4px" }}>
+                                        <strong>Composite:</strong> {detailQuery.data.breakdown.composite.toFixed(2)}
+                                    </p>
+                                    <p style={{ margin: "0 0 4px" }}>
+                                        Weather: {detailQuery.data.breakdown.weather.toFixed(2)}
+                                    </p>
+                                    <p style={{ margin: "0 0 4px" }}>
+                                        Rainfall: {detailQuery.data.breakdown.rainfall.toFixed(2)}
+                                    </p>
+                                    <p style={{ margin: "0 0 4px" }}>
+                                        Forest ({detailQuery.data.breakdown.inputs.forestClass}):{" "}
+                                        {detailQuery.data.breakdown.forest.toFixed(2)}
+                                    </p>
+                                    <p style={{ margin: "0 0 4px" }}>
+                                        Terrain:{" "}
+                                        {detailQuery.data.breakdown.terrain?.toFixed(2) ??
+                                            `n/a (zoom in to z${MIN_MAPBOX_ZOOM}+)`}
+                                    </p>
+                                    {detailQuery.data.elevation !== undefined && (
+                                        <p style={{ margin: 0 }}>
+                                            Elevation: {detailQuery.data.elevation.toFixed(0)} m
+                                            {detailQuery.data.slope !== undefined && (
+                                                <>
+                                                    {" "}
+                                                    · Slope: {detailQuery.data.slope.toFixed(3)} · Aspect:{" "}
+                                                    {detailQuery.data.aspect?.toFixed(0)}°
+                                                </>
+                                            )}
+                                            {detailQuery.data.twi !== undefined && (
+                                                <> · TWI: {detailQuery.data.twi.toFixed(1)}</>
+                                            )}
+                                        </p>
                                     )}
-                                    {detailQuery.data.conditions.tempMinRecentC !== undefined && (
-                                        <> · {detailQuery.data.conditions.tempMinRecentC.toFixed(1)}°C last night</>
-                                    )}
-                                    <br />
-                                    {detailQuery.data.conditions.humidityMeanPct !== undefined && (
-                                        <>{detailQuery.data.conditions.humidityMeanPct.toFixed(0)}% humidity ({detailQuery.data.conditions.humidityProvenance})</>
-                                    )}
-                                    {detailQuery.data.conditions.precipitationRecentMm !== undefined && (
-                                        <>
-                                            {" "}· {detailQuery.data.conditions.precipitationRecentMm.toFixed(1)} mm recent ({detailQuery.data.conditions.precipitationProvenance})
-                                        </>
-                                    )}
-                                    {detailQuery.data.conditions.daysSinceRain !== undefined && (
-                                        <> · {detailQuery.data.conditions.daysSinceRain}d since rain ({detailQuery.data.conditions.daysSinceRainProvenance})</>
-                                    )}
-                                    {detailQuery.data.conditions.windMeanMs !== undefined && (
-                                        <> · wind {detailQuery.data.conditions.windMeanMs.toFixed(1)} m/s</>
-                                    )}
-                                    {detailQuery.data.conditions.vpdKpa !== undefined && (
-                                        <> · VPD {detailQuery.data.conditions.vpdKpa.toFixed(2)} kPa</>
-                                    )}
-                                    {detailQuery.data.conditions.solarRadiationWm2 !== undefined && (
-                                        <> · {detailQuery.data.conditions.solarRadiationWm2.toFixed(0)} W/m² solar</>
-                                    )}
-                                    {detailQuery.data.conditions.cloudCoverPct !== undefined && (
-                                        <> · {detailQuery.data.conditions.cloudCoverPct.toFixed(0)}% cloud</>
-                                    )}
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                )}
 
-                <LayerControls analysisActive={analysisActive} radiusKm={radiusKm} onRadiusKmChange={setRadiusKm} />
+                                    <p
+                                        style={{
+                                            marginTop: 10,
+                                            paddingTop: 10,
+                                            borderTop: "1px solid var(--fe-border)",
+                                            color: "var(--fe-text-muted)",
+                                            fontSize: 12,
+                                            lineHeight: 1.6,
+                                        }}
+                                    >
+                                        {detailQuery.data.breakdown.inputs.forecast.temperature.toFixed(1)}°C now
+                                        {detailQuery.data.conditions.tempMeanRecentC !== undefined && (
+                                            <> · {detailQuery.data.conditions.tempMeanRecentC.toFixed(1)}°C 7d-mean ({detailQuery.data.conditions.tempProvenance})</>
+                                        )}
+                                        {detailQuery.data.conditions.tempMinRecentC !== undefined && (
+                                            <> · {detailQuery.data.conditions.tempMinRecentC.toFixed(1)}°C last night</>
+                                        )}
+                                        <br />
+                                        {detailQuery.data.conditions.humidityMeanPct !== undefined && (
+                                            <>{detailQuery.data.conditions.humidityMeanPct.toFixed(0)}% humidity ({detailQuery.data.conditions.humidityProvenance})</>
+                                        )}
+                                        {detailQuery.data.conditions.precipitationRecentMm !== undefined && (
+                                            <>
+                                                {" "}· {detailQuery.data.conditions.precipitationRecentMm.toFixed(1)} mm recent ({detailQuery.data.conditions.precipitationProvenance})
+                                            </>
+                                        )}
+                                        {detailQuery.data.conditions.daysSinceRain !== undefined && (
+                                            <> · {detailQuery.data.conditions.daysSinceRain}d since rain ({detailQuery.data.conditions.daysSinceRainProvenance})</>
+                                        )}
+                                        {detailQuery.data.conditions.windMeanMs !== undefined && (
+                                            <> · wind {detailQuery.data.conditions.windMeanMs.toFixed(1)} m/s</>
+                                        )}
+                                        {detailQuery.data.conditions.vpdKpa !== undefined && (
+                                            <> · VPD {detailQuery.data.conditions.vpdKpa.toFixed(2)} kPa</>
+                                        )}
+                                        {detailQuery.data.conditions.solarRadiationWm2 !== undefined && (
+                                            <> · {detailQuery.data.conditions.solarRadiationWm2.toFixed(0)} W/m² solar</>
+                                        )}
+                                        {detailQuery.data.conditions.cloudCoverPct !== undefined && (
+                                            <> · {detailQuery.data.conditions.cloudCoverPct.toFixed(0)}% cloud</>
+                                        )}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
 
-                <p style={{ marginTop: 20, fontSize: 12, color: "var(--fe-text-faint)" }}>
-                    Press <kbd>D</kbd> for debug panel (tile budget, API log)
-                </p>
-
-                <div
-                    style={{
-                        marginTop: 14,
-                        background: "var(--fe-card-bg)",
-                        border: "1px solid var(--fe-border)",
-                        borderRadius: 10,
-                        padding: "12px 14px",
-                        boxShadow: "var(--fe-shadow-sm)",
-                    }}
-                >
+                <div style={PANEL_CARD_STYLE}>
                     <h5
                         style={{
                             margin: "0 0 2px",
@@ -334,6 +322,12 @@ export default function App() {
                         </div>
                     ))}
                 </div>
+
+                <LayerControls analysisActive={analysisActive} radiusKm={radiusKm} onRadiusKmChange={setRadiusKm} />
+
+                <p style={{ marginTop: 20, fontSize: 12, color: "var(--fe-text-faint)" }}>
+                    Press <kbd>D</kbd> for debug panel (tile budget, API log)
+                </p>
             </div>
         </div>
     );
